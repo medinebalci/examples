@@ -1,4 +1,3 @@
-# coding: utf-8
 import argparse
 import time
 import math
@@ -51,6 +50,7 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
 parser.add_argument('--dry-run', action='store_true',
                     help='verify the code and the model')
+parser.add_argument("--log_file", type=str, help="Path to save perplexity logs")
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -186,7 +186,7 @@ def train():
         loss = criterion(output, targets)
         loss.backward()
 
-        # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
+        # clip_grad_norm helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         for p in model.parameters():
             p.data.add_(p.grad, alpha=-lr)
