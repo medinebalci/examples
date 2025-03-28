@@ -14,9 +14,9 @@ parser.add_argument('--data', type=str, default='./data/wikitext-2',
                     help='location of the data corpus')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of network (RNN_TANH, RNN_RELU, LSTM, GRU, Transformer)')
-parser.add_argument('--emsize', type=int, default=200,
+parser.add_argument('--emsize', type=int, default=250,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=200,
+parser.add_argument('--nhid', type=int, default=250,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=2,
                     help='number of layers')
@@ -229,6 +229,10 @@ try:
                 'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                            val_loss, math.exp(val_loss)))
         print('-' * 89)
+        # Save to log file if specified
+        if args.log_file:
+            with open(args.log_file, "a") as log:
+                log.write(f"{epoch}\t{val_loss:.4f}\t{math.exp(val_loss):.4f}\n")
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             with open(args.save, 'wb') as f:
@@ -256,6 +260,11 @@ print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
+
+# Save final test perplexity to log file if specified
+if args.log_file:
+    with open(args.log_file, "a") as log:
+        log.write(f"Test\t{test_loss:.4f}\t{math.exp(test_loss):.4f}\n")
 
 if len(args.onnx_export) > 0:
     # Export the model in ONNX format.
