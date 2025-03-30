@@ -4,6 +4,7 @@ import math
 import os
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.onnx
 
 import data
@@ -113,6 +114,7 @@ else:
     model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(device)
 
 criterion = nn.NLLLoss()
+optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
 ###############################################################################
 # Training code
@@ -162,6 +164,11 @@ def evaluate(data_source):
                 hidden = repackage_hidden(hidden)
             total_loss += len(data) * criterion(output, targets).item()
     return total_loss / (len(data_source) - 1)
+
+best_ppl = float('inf')  # Start with an infinitely high perplexity
+worst_ppl = 0  # Start with the lowest possible perplexity
+best_model_path = "best_model.pt"
+worst_model_path = "worst_model.pt"
 
 
 def train():
@@ -224,6 +231,20 @@ try:
         epoch_start_time = time.time()
         train()
         val_loss = evaluate(val_data)
+        val_ppl = math.exp(val_loss)  # Convert validation loss to perplexity
+
+        # Save the best model if we achieve a new lowest perplexity
+        if val_ppl < best_ppl:
+            best_ppl = val_ppl
+            with open(best_model_path, 'wb') as f:
+                torch.save(model.state_dict(), f)
+
+        # Save the worst model if we achieve a new highest perplexity
+        if val_ppl > worst_ppl:
+            worst_ppl = val_ppl
+            with open(worst_model_path, 'wb') as f:
+                torch.save(model.state_dict(), f)
+
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                 'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
@@ -265,7 +286,3 @@ print('=' * 89)
 if args.log_file:
     with open(args.log_file, "a") as log:
         log.write(f"Test\t{test_loss:.4f}\t{math.exp(test_loss):.4f}\n")
-
-if len(args.onnx_export) > 0:
-    # Export the model in ONNX format.
-    export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
