@@ -104,16 +104,6 @@ plt.grid()
 plt.savefig("training_perplexity_plot.png")
 plt.show()
 
-# Plot Test Perplexity
-plt.figure(figsize=(6, 4))
-plt.bar(df_test["Dropout"], df_test["Test Perplexity"], color=['blue', 'orange', 'green', 'red'])
-plt.xlabel("Dropout Rate")
-plt.ylabel("Test Perplexity")
-plt.title("Test Perplexity vs Dropout")
-plt.grid(axis='y')
-plt.savefig("test_perplexity_plot.png")
-plt.show()
-
 
 # Load data
 log_file = "C:/Users/medin/OneDrive/Dokumente/mt-exercise-02/scripts/tools/pytorch-examples/word_language_model/perplexities.log"

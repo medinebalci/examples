@@ -172,17 +172,15 @@ worst_model_path = "worst_model.pt"
 
 
 def train():
-    # Turn on training mode which enables dropout.
     model.train()
     total_loss = 0.
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     if args.model != 'Transformer':
         hidden = model.init_hidden(args.batch_size)
+
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
         data, targets = get_batch(train_data, i)
-        # Starting each batch, we detach the hidden state from how it was previously produced.
-        # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
         if args.model == 'Transformer':
             output = model(data)
@@ -192,11 +190,7 @@ def train():
             output, hidden = model(data, hidden)
         loss = criterion(output, targets)
         loss.backward()
-
-        # clip_grad_norm helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
-        for p in model.parameters():
-            p.data.add_(p.grad, alpha=-lr)
 
         total_loss += loss.item()
 
@@ -209,8 +203,11 @@ def train():
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
+
         if args.dry_run:
             break
+
+    return total_loss  # Return the total loss for later use
 
 
 def export_onnx(path, batch_size, seq_len):
@@ -223,13 +220,12 @@ def export_onnx(path, batch_size, seq_len):
 
 # Loop over epochs.
 lr = args.lr
-best_val_loss = None
+best_val_loss = float('inf')  # initialize with a large number
 
-# At any point you can hit Ctrl + C to break out of training early.
 try:
-    for epoch in range(1, args.epochs+1):
+    for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
-        train()
+        train_loss = train()  # Track training loss
         val_loss = evaluate(val_data)
         val_ppl = math.exp(val_loss)  # Convert validation loss to perplexity
 
@@ -250,22 +246,23 @@ try:
                 'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                            val_loss, math.exp(val_loss)))
         print('-' * 89)
+
         # Save to log file if specified
         if args.log_file:
             with open(args.log_file, "a") as log:
-                log.write(f"{epoch}\t{val_loss:.4f}\t{math.exp(val_loss):.4f}\n")
+                log.write(f"{epoch}\t{train_loss:.4f}\t{math.exp(train_loss):.4f}\t{val_loss:.4f}\t{val_ppl:.4f}\n")
+
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             with open(args.save, 'wb') as f:
                 torch.save(model, f)
             best_val_loss = val_loss
         else:
-            # Anneal the learning rate if no improvement has been seen in the validation dataset.
             lr /= 4.0
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
-
+    
 # Load the best saved model.
 with open(args.save, 'rb') as f:
     model = torch.load(f)

@@ -26,6 +26,8 @@ class Corpus(object):
 
     def tokenize(self, path):
         """Tokenizes a text file."""
+        print(f"Checking path: {path}")
+        print(f"Exists? {os.path.exists(path)}")
         assert os.path.exists(path)
         # Add words to the dictionary
         with open(path, 'r', encoding="utf8") as f:
