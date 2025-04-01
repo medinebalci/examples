@@ -232,13 +232,13 @@ try:
         # Save the best model if we achieve a new lowest perplexity
         if val_ppl < best_ppl:
             best_ppl = val_ppl
-            with open(best_model_path, 'wb') as f:
+            with open(best_model_path, 'rb') as f:
                 torch.save(model.state_dict(), f)
 
         # Save the worst model if we achieve a new highest perplexity
         if val_ppl > worst_ppl:
             worst_ppl = val_ppl
-            with open(worst_model_path, 'wb') as f:
+            with open(worst_model_path, 'rb') as f:
                 torch.save(model.state_dict(), f)
 
         print('-' * 89)
@@ -254,7 +254,7 @@ try:
 
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
-            with open(args.save, 'wb') as f:
+            with open(args.save, 'rb') as f:
                 torch.save(model, f)
             best_val_loss = val_loss
         else:
